@@ -9,7 +9,7 @@ class Propiedad
     private float $superficie;
     private string $tipoOferta;
     private string $tipoPropiedad;
-    private string $ubicacion;
+    private float $ubicacion;
 
     public function __construct(
         bool $estado, 
@@ -17,7 +17,7 @@ class Propiedad
         float $superficie, 
         string $tipoOferta, 
         string $tipoPropiedad, 
-        string $ubicacion
+        float $ubicacion
     ) {
         $this->estado = $estado;
         $this->precio = $precio;

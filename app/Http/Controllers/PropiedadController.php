@@ -16,7 +16,6 @@ class PropiedadController extends Controller
         if ($data) {
             foreach ($data as $id => $row) {
                 $propiedades[$id] = [
-                    'id' => $id,
                     'ubicacion' => $row['ubicacion'],
                     'tipo_propiedad' => $row['tipo_propiedad'],
                     'tipo_oferta' => $row['tipo_oferta'],
