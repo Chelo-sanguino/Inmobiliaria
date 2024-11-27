@@ -1,106 +1,116 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
+use App\Core\Dominio\Propiedad;
+use App\Infraestructura\PropiedadRepositoryFb;
 use Illuminate\Http\Request;
-use App\Infraestructura\FirebaseConnection;
 
 class PropiedadController extends Controller
 {
+    private PropiedadRepositoryFb $repository;
+
+    public function __construct()
+    {
+        $this->repository = new PropiedadRepositoryFb();
+    }
+
+    /**
+     * Obtener todas las propiedades.
+     */
     public function index()
     {
-        $data = FirebaseConnection::get("/propiedades");
-        $propiedades = [];
-
-        if ($data) {
-            foreach ($data as $id => $row) {
-                $propiedades[$id] = [
-                    'ubicacion' => $row['ubicacion'],
-                    'tipo_propiedad' => $row['tipo_propiedad'],
-                    'tipo_oferta' => $row['tipo_oferta'],
-                    'superficie' => $row['superficie'],
-                    'precio' => $row['precio'],
-                    'estado' => $row['estado'],
-                ];
-            }
-        }
-
-        return view('propiedades.index', compact('propiedades'));
+        $propiedades = $this->repository->all();
+        return response()->json($propiedades);
     }
 
-    public function create()
-    {
-        return view('propiedades.create');
-    }
-
+    /**
+     * Crear una nueva propiedad.
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'ubicacion' => 'required',
-            'tipo_propiedad' => 'required',
-            'tipo_oferta' => 'required',
-            'superficie' => 'required|numeric',
+            'estado' => 'required|boolean',
             'precio' => 'required|numeric',
-            'estado' => 'required',
+            'superficie' => 'required|numeric',
+            'tipoOferta' => 'required|string',
+            'tipoPropiedad' => 'required|string',
+            'ubicacion' => 'required|numeric',
         ]);
 
-        $data = [
-            'ubicacion' => $request->ubicacion,
-            'tipo_propiedad' => $request->tipo_propiedad,
-            'tipo_oferta' => $request->tipo_oferta,
-            'superficie' => $request->superficie,
-            'precio' => $request->precio,
-            'estado' => $request->estado,
-        ];
+        $propiedad = new Propiedad(
+            $request->estado,
+            $request->precio,
+            $request->superficie,
+            $request->tipoOferta,
+            $request->tipoPropiedad,
+            $request->ubicacion
+        );
 
-        FirebaseConnection::set("/propiedades/" . uniqid(), $data); // Guardar en Firebase
-        return redirect()->route('propiedades.index')->with('success', 'Propiedad creada exitosamente.');
+        $this->repository->create($propiedad);
+
+        return response()->json(['message' => 'Propiedad creada exitosamente'], 201);
     }
 
+    /**
+     * Obtener una propiedad por su ID.
+     */
     public function show($id)
     {
-        $data = FirebaseConnection::get("/propiedades/$id");
-        if (!$data) {
-            abort(404);
+        $propiedad = $this->repository->find($id);
+
+        if (!$propiedad) {
+            return response()->json(['message' => 'Propiedad no encontrada'], 404);
         }
 
-        return view('propiedades.show', ['propiedad' => $data]);
+        return response()->json($propiedad);
     }
 
-    public function edit($id)
-    {
-        $data = FirebaseConnection::get("/propiedades/$id");
-        if (!$data) {
-            abort(404);
-        }
-
-        return view('propiedades.edit', ['propiedad' => $data]);
-    }
-
+    /**
+     * Actualizar una propiedad existente.
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
-            'ubicacion' => 'required',
-            'tipo_propiedad' => 'required',
-            'tipo_oferta' => 'required',
-            'superficie' => 'required|numeric',
+            'estado' => 'required|boolean',
             'precio' => 'required|numeric',
-            'estado' => 'required',
+            'superficie' => 'required|numeric',
+            'tipoOferta' => 'required|string',
+            'tipoPropiedad' => 'required|string',
+            'ubicacion' => 'required|numeric',
         ]);
 
-        $data = [
-            'ubicacion' => $request->ubicacion,
-            'tipo_propiedad' => $request->tipo_propiedad,
-            'tipo_oferta' => $request->tipo_oferta,
-            'superficie' => $request->superficie,
-            'precio' => $request->precio,
-            'estado' => $request->estado,
-        ];
+        $propiedad = $this->repository->find($id);
 
-        FirebaseConnection::set("/propiedades/$id", $data); // Actualizar en Firebase
-        return redirect()->route('propiedades.index')->with('success', 'Propiedad actualizada exitosamente.');
+        if (!$propiedad) {
+            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+        }
+
+        $propiedad->setEstado($request->estado);
+        $propiedad->setPrecio($request->precio);
+        $propiedad->setSuperficie($request->superficie);
+        $propiedad->setTipoOferta($request->tipoOferta);
+        $propiedad->setTipoPropiedad($request->tipoPropiedad);
+        $propiedad->setUbicacion($request->ubicacion);
+
+        $this->repository->update($id, $propiedad);
+
+        return response()->json(['message' => 'Propiedad actualizada exitosamente']);
     }
 
-    
+    /**
+     * Eliminar una propiedad.
+     */
+    public function destroy($id)
+    {
+        $propiedad = $this->repository->find($id);
+
+        if (!$propiedad) {
+            return response()->json(['message' => 'Propiedad no encontrada'], 404);
+        }
+
+        $this->repository->delete($id);
+
+        return response()->json(['message' => 'Propiedad eliminada exitosamente']);
+    }
 }
